@@ -72,6 +72,8 @@ class TextChapterLayout(
     private val indentCharWidth = ChapterProvider.indentCharWidth
     private val stringBuilder = StringBuilder()
 
+    private val paragraphIndent = ReadBookConfig.paragraphIndent
+
     private var pendingTextPage = TextPage()
 
     private var isCompleted = false
@@ -184,6 +186,9 @@ class TextChapterLayout(
         val contents = bookContent.textList
         var absStartX = paddingLeft
         var durY = 0f
+        val imageStyle = book.getImageStyle()
+        val isSingleImageStyle = imageStyle.equals(Book.imgStyleSingle, true)
+
         if (ReadBookConfig.titleMode != 2 || bookChapter.isVolume || contents.isEmpty()) {
             //标题非隐藏
             displayTitle.splitNotBlank("\n").forEach { text ->
@@ -193,7 +198,7 @@ class TextChapterLayout(
                     titlePaint,
                     titlePaintTextHeight,
                     titlePaintFontMetrics,
-                    book.getImageStyle(),
+                    imageStyle,
                     isTitle = true,
                     emptyContent = contents.isEmpty(),
                     isVolumeTitle = bookChapter.isVolume
@@ -205,6 +210,17 @@ class TextChapterLayout(
             pendingTextPage.lines.last().isParagraphEnd = true
             stringBuilder.append("\n")
             durY += titleBottomSpacing
+
+            // 如果是单图模式且当前页有内容，强制分页
+            if (isSingleImageStyle && pendingTextPage.lines.isNotEmpty()) {
+                pendingTextPage.height = durY
+                textPages.add(pendingTextPage)
+                onPageCompleted()
+                pendingTextPage = TextPage()
+                stringBuilder.clear()
+                absStartX = paddingLeft
+                durY = 0f
+            }
         }
         val sb = StringBuffer()
         contents.forEach { content ->
@@ -252,7 +268,8 @@ class TextChapterLayout(
                             contentPaint,
                             contentPaintTextHeight,
                             contentPaintFontMetrics,
-                            book.getImageStyle()
+                            book.getImageStyle(),
+                            isFirstLine = start == 0
                         ).let {
                             absStartX = it.first
                             durY = it.second
@@ -281,7 +298,8 @@ class TextChapterLayout(
                             contentPaint,
                             contentPaintTextHeight,
                             contentPaintFontMetrics,
-                            book.getImageStyle()
+                            book.getImageStyle(),
+                            isFirstLine = start == 0
                         ).let {
                             absStartX = it.first
                             durY = it.second
@@ -289,7 +307,9 @@ class TextChapterLayout(
                     }
                 }
             }
-            pendingTextPage.lines.last().isParagraphEnd = true
+            if (pendingTextPage.lines.isNotEmpty()) {
+                pendingTextPage.lines.last().isParagraphEnd = true
+            }
             stringBuilder.append("\n")
         }
         textPages.add(pendingTextPage)
@@ -442,6 +462,7 @@ class TextChapterLayout(
         fontMetrics: Paint.FontMetrics,
         imageStyle: String?,
         isTitle: Boolean = false,
+        isFirstLine: Boolean = true,
         emptyContent: Boolean = false,
         isVolumeTitle: Boolean = false,
         srcList: LinkedList<String>? = null
@@ -459,7 +480,8 @@ class TextChapterLayout(
         }
         val layout = if (ReadBookConfig.useZhLayout) {
             val (words, widths) = measureTextSplit(text, widthsArray)
-            ZhLayout(text, textPaint, visibleWidth, words, widths)
+            val indentSize = if (isFirstLine) paragraphIndent.length else 0
+            ZhLayout(text, textPaint, visibleWidth, words, widths, indentSize)
         } else {
             StaticLayout(text, textPaint, visibleWidth, Layout.Alignment.ALIGN_NORMAL, 0f, 0f, true)
         }
@@ -532,7 +554,7 @@ class TextChapterLayout(
             val desiredWidth = widths.fastSum()
             textLine.text = lineText
             when {
-                lineIndex == 0 && layout.lineCount > 1 && !isTitle -> {
+                lineIndex == 0 && layout.lineCount > 1 && !isTitle && isFirstLine -> {
                     //多行的第一行 非标题
                     addCharsToLineFirst(
                         book, absStartX, textLine, words, textPaint,
@@ -638,8 +660,8 @@ class TextChapterLayout(
             )
             return
         }
-        val bodyIndent = ReadBookConfig.paragraphIndent
-        for (i in bodyIndent.indices) {
+        val bodyIndent = paragraphIndent
+        repeat(bodyIndent.length) {
             val x1 = x + indentCharWidth
             textLine.addColumn(
                 TextColumn(
@@ -708,7 +730,7 @@ class TextChapterLayout(
             }
         } else {
             val gapCount: Int = words.lastIndex
-            val d = residualWidth / gapCount
+            val d = if (gapCount > 0) residualWidth / gapCount else 0f
             textLine.extraLetterSpacingOffsetX = -d / 2
             textLine.extraLetterSpacing = d / textPaint.textSize
             var x = startX

@@ -110,6 +110,11 @@
             android:title="@string/bitmap_cache_size" />
 
         <io.legado.app.lib.prefs.Preference
+            android:key="imageRetainNum"
+            android:summary="@string/image_retain_number_summary"
+            android:title="@string/image_retain_number" />
+
+        <io.legado.app.lib.prefs.Preference
             android:key="preDownloadNum"
             android:summary="@string/pre_download_s"
             android:title="@string/pre_download" />
@@ -162,6 +167,12 @@
             app:allowDividerBelow="false"
             app:entries="@array/default_app_variant"
             app:entryValues="@array/default_app_variant_value" />
+
+        <io.legado.app.lib.prefs.SwitchPreference
+            android:defaultValue="true"
+            android:key="showMangaUi"
+            android:title="@string/show_mange_ui"
+            app:iconSpaceReserved="false" />
 
         <io.legado.app.lib.prefs.Preference
             android:key="webPort"

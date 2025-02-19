@@ -820,6 +820,8 @@
     <string name="export_bookshelf">Exportar lista de libros</string>
     <string name="import_bookshelf">Importar lista de libros</string>
     <string name="pre_download">Descarga anterior</string>
+    <string name="pre_download_m">预下载%s页</string>
+    <string name="single_page_scroller">单页滚动</string>
     <string name="pre_download_s">Descargue %s capítulos antes</string>
     <string name="is_enabled">Está habilitado</string>
     <string name="background_image">Imagen de fondo</string>
@@ -1003,6 +1005,8 @@
     <string name="add_remote_book">RemoteBook</string>
     <string name="bitmap_cache_size_summary">Current cache max size %1$s MB</string>
     <string name="bitmap_cache_size">bitmap cache size</string>
+    <string name="image_retain_number_summary">Keep the number of chapters read %s</string>
+    <string name="image_retain_number">Number of manga reservations</string>
     <string name="export_pics_file">Export Picture Files</string>
     <!-- string end -->
     <string name="error_decode_bitmap">Fail to decode bitmap</string>
@@ -1128,6 +1132,7 @@
     <string name="exit_app">退出软件</string>
     <string name="result_analyzed">Analyzed</string>
     <string name="bookshelf_px_4">Comprehensive</string>
+    <string name="bookshelf_px_5">Ordenar por autor</string>
     <string name="effective_replaces">起效的替换</string>
     <string name="export_book">导出书籍</string>
     <string name="export_book_notification_content">正在导出(%1$s),还有%2$d本待导出</string>
@@ -1176,4 +1181,14 @@
     <string name="read_aloud_by_media_button_title">耳机按键启动朗读</string>
     <string name="read_aloud_by_media_button_summary">通过耳机按键来启动朗读</string>
     <string name="show_same_source">显示重复书源</string>
+    <string name="theme_config">主题配置</string>
+    <string name="show_mange_ui">漫画浏览</string>
+    <string name="disable_manga_scaling">禁用漫画缩放</string>
+    <string name="disable_manga_click_scroller">禁用点击翻页</string>
+    <string name="enable_auto_page_scroller">开启自动翻页</string>
+    <string name="manga_auto_page_speed">翻页速度 %s 秒</string>
+    <string name="setting_manga_auto_page_speed">设置自动翻页速度</string>
+    <string name="book_reader_info_bar">页数. %1$d/%2$d  章节. %3$d/%4$d -> %5$s%%</string>
+    <string name="menu_download_after">Descargar el siguiente capítulo</string>
+    <string name="menu_download_all">Descargar todos los capítulos</string>
 </resources>

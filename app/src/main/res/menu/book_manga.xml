@@ -1,0 +1,60 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context=".ui.main.MainActivity"
+    tools:ignore="AlwaysShowAction">
+
+    <group android:id="@+id/menu_group_on_line">
+        <item
+            android:id="@+id/menu_change_source"
+            android:icon="@drawable/ic_exchange"
+            android:title="@string/change_origin"
+            app:showAsAction="always" />
+
+        <item
+            android:id="@+id/menu_catalog"
+            android:icon="@drawable/ic_toc"
+            android:title="@string/chapter_list"
+            app:showAsAction="always" />
+
+    </group>
+
+    <item
+        android:id="@+id/menu_pre_manga_number"
+        android:title="@string/pre_download"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/menu_scroller_page"
+        android:checkable="true"
+        android:checked="false"
+        android:title="@string/single_page_scroller"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/menu_disable_manga_scaling"
+        android:checkable="true"
+        android:checked="false"
+        android:title="@string/disable_manga_scaling"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/menu_disable_click_scroller"
+        android:checkable="true"
+        android:checked="false"
+        android:title="@string/disable_manga_click_scroller"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/menu_enable_auto_page"
+        android:checkable="true"
+        android:checked="false"
+        android:title="@string/enable_auto_page_scroller"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/menu_manga_auto_page_speed"
+        android:visible="false"
+        android:title="@string/manga_auto_page_speed"
+        app:showAsAction="never" />
+</menu>

@@ -240,7 +240,7 @@ class EpubFile(var book: Book) {
             it.attr("src", it.attr("xlink:href"))
         }
         bodyElement.select("img").forEach {
-            val src = it.attr("src").encodeURI()
+            val src = it.attr("src").trim().encodeURI()
             val href = res.href.encodeURI()
             val resolvedHref = URLDecoder.decode(URI(href).resolve(src).toString(), "UTF-8")
             it.attr("src", resolvedHref)
@@ -290,12 +290,12 @@ class EpubFile(var book: Book) {
                 book.name = book.originName.replace(".epub", "")
             }
 
-            if (metadata.authors.size > 0) {
+            if (metadata.authors.isNotEmpty()) {
                 val author =
                     metadata.authors[0].toString().replace("^, |, $".toRegex(), "")
                 book.author = author
             }
-            if (metadata.descriptions.size > 0) {
+            if (metadata.descriptions.isNotEmpty()) {
                 val desc = metadata.descriptions[0]
                 book.intro = if (desc.isXml()) {
                     Jsoup.parse(metadata.descriptions[0]).text()
@@ -323,7 +323,7 @@ class EpubFile(var book: Book) {
                             val doc =
                                 Jsoup.parse(String(resource.data, mCharset))
                             val elements = doc.getElementsByTag("title")
-                            if (elements.size > 0) {
+                            if (elements.isNotEmpty()) {
                                 title = elements[0].text()
                             }
                         } catch (e: IOException) {
@@ -385,7 +385,7 @@ class EpubFile(var book: Book) {
                     String(epubBook!!.resources.getByHref(content.href).data, mCharset)
                 ).getElementsByTag("title")
                 title =
-                    if (elements.size > 0 && elements[0].text().isNotBlank())
+                    if (elements.isNotEmpty() && elements[0].text().isNotBlank())
                         elements[0].text()
                     else
                         "--卷首--"

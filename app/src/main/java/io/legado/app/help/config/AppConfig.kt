@@ -554,6 +554,12 @@ object AppConfig : SharedPreferences.OnSharedPreferenceChangeListener {
             appCtx.putPrefInt(PreferKey.bitmapCacheSize, value)
         }
 
+    var imageRetainNum: Int
+        get() = appCtx.getPrefInt(PreferKey.imageRetainNum, 0)
+        set(value) {
+            appCtx.putPrefInt(PreferKey.imageRetainNum, value)
+        }
+
     var showReadTitleBarAddition: Boolean
         get() = appCtx.getPrefBoolean(PreferKey.showReadTitleAddition, true)
         set(value) {
@@ -598,5 +604,58 @@ object AppConfig : SharedPreferences.OnSharedPreferenceChangeListener {
             appCtx.toastOnUi("当前没有配置菜单区域,自动恢复中间区域为菜单.")
         }
     }
+
+    //跳转到漫画界面不使用富文本模式
+    val showMangaUi: Boolean
+        get() = appCtx.getPrefBoolean(PreferKey.showMangaUi, true)
+
+    //禁用漫画缩放
+    var disableMangaScale: Boolean
+        get() = appCtx.getPrefBoolean(PreferKey.disableMangaScale, true)
+        set(value) {
+            appCtx.putPrefBoolean(PreferKey.disableMangaScale, value)
+        }
+
+    //漫画预加载数量
+    var mangaPreDownloadNum
+        get() = appCtx.getPrefInt(PreferKey.mangaPreDownloadNum, 10)
+        set(value) {
+            appCtx.putPrefInt(PreferKey.mangaPreDownloadNum, value)
+        }
+
+    //单页滚动
+    var singlePageScroll
+        get() = appCtx.getPrefBoolean(PreferKey.singlePageScroll, false)
+        set(value) {
+            appCtx.putPrefBoolean(PreferKey.singlePageScroll, value)
+        }
+
+    //点击翻页
+    var disableClickScroll
+        get() = appCtx.getPrefBoolean(PreferKey.disableClickScroll, false)
+        set(value) {
+            appCtx.putPrefBoolean(PreferKey.disableClickScroll, value)
+        }
+
+    //漫画滚动速度
+    var mangaAutoPageSpeed
+        get() = appCtx.getPrefInt(PreferKey.mangaAutoPageSpeed, 3)
+        set(value) {
+            appCtx.putPrefInt(PreferKey.mangaAutoPageSpeed, value)
+        }
+
+    //漫画页脚配置
+    var mangaFooterConfig
+        get() = appCtx.getPrefString(PreferKey.mangaFooterConfig, "")
+        set(value) {
+            appCtx.putPrefString(PreferKey.mangaFooterConfig, value)
+        }
+
+    //漫画水平滚动
+    var enableMangaHorizontalScroll
+        get() = appCtx.getPrefBoolean(PreferKey.enableMangaHorizontalScroll, false)
+        set(value) {
+            appCtx.putPrefBoolean(PreferKey.enableMangaHorizontalScroll, value)
+        }
 }
 

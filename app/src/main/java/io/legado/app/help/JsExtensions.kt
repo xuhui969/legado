@@ -21,6 +21,7 @@ import io.legado.app.help.source.SourceVerificationHelp
 import io.legado.app.model.Debug
 import io.legado.app.model.analyzeRule.AnalyzeUrl
 import io.legado.app.model.analyzeRule.QueryTTF
+import io.legado.app.ui.association.OpenUrlConfirmActivity
 import io.legado.app.utils.ArchiveUtils
 import io.legado.app.utils.ChineseUtils
 import io.legado.app.utils.EncoderUtils
@@ -43,6 +44,7 @@ import io.legado.app.utils.longToastOnUi
 import io.legado.app.utils.readBytes
 import io.legado.app.utils.readText
 import io.legado.app.utils.stackTraceStr
+import io.legado.app.utils.startActivity
 import io.legado.app.utils.toStringArray
 import io.legado.app.utils.toastOnUi
 import kotlinx.coroutines.Dispatchers.IO
@@ -82,11 +84,11 @@ interface JsExtensions : JsEncodeUtils {
 
     fun getSource(): BaseSource?
 
+    private val rhinoContext: RhinoContext
+        get() = Context.getCurrentContext() as RhinoContext
+
     private val context: CoroutineContext
-        get() {
-            val rhinoContext = Context.getCurrentContext() as RhinoContext
-            return rhinoContext.coroutineContext ?: EmptyCoroutineContext
-        }
+        get() = rhinoContext.coroutineContext ?: EmptyCoroutineContext
 
     /**
      * 访问网络,返回String
@@ -358,13 +360,17 @@ interface JsExtensions : JsEncodeUtils {
         val requestHeaders = if (getSource()?.enabledCookieJar == true) {
             headers.toMutableMap().apply { put(cookieJarHeader, "1") }
         } else headers
-        val response = Jsoup.connect(urlStr)
-            .sslSocketFactory(SSLHelper.unsafeSSLSocketFactory)
-            .ignoreContentType(true)
-            .followRedirects(false)
-            .headers(requestHeaders)
-            .method(Connection.Method.GET)
-            .execute()
+        val rateLimiter = ConcurrentRateLimiter(getSource())
+        val response = rateLimiter.withLimitBlocking {
+            rhinoContext.ensureActive()
+            Jsoup.connect(urlStr)
+                .sslSocketFactory(SSLHelper.unsafeSSLSocketFactory)
+                .ignoreContentType(true)
+                .followRedirects(false)
+                .headers(requestHeaders)
+                .method(Connection.Method.GET)
+                .execute()
+        }
         return response
     }
 
@@ -375,13 +381,17 @@ interface JsExtensions : JsEncodeUtils {
         val requestHeaders = if (getSource()?.enabledCookieJar == true) {
             headers.toMutableMap().apply { put(cookieJarHeader, "1") }
         } else headers
-        val response = Jsoup.connect(urlStr)
-            .sslSocketFactory(SSLHelper.unsafeSSLSocketFactory)
-            .ignoreContentType(true)
-            .followRedirects(false)
-            .headers(requestHeaders)
-            .method(Connection.Method.HEAD)
-            .execute()
+        val rateLimiter = ConcurrentRateLimiter(getSource())
+        val response = rateLimiter.withLimitBlocking {
+            rhinoContext.ensureActive()
+            Jsoup.connect(urlStr)
+                .sslSocketFactory(SSLHelper.unsafeSSLSocketFactory)
+                .ignoreContentType(true)
+                .followRedirects(false)
+                .headers(requestHeaders)
+                .method(Connection.Method.HEAD)
+                .execute()
+        }
         return response
     }
 
@@ -392,14 +402,18 @@ interface JsExtensions : JsEncodeUtils {
         val requestHeaders = if (getSource()?.enabledCookieJar == true) {
             headers.toMutableMap().apply { put(cookieJarHeader, "1") }
         } else headers
-        val response = Jsoup.connect(urlStr)
-            .sslSocketFactory(SSLHelper.unsafeSSLSocketFactory)
-            .ignoreContentType(true)
-            .followRedirects(false)
-            .requestBody(body)
-            .headers(requestHeaders)
-            .method(Connection.Method.POST)
-            .execute()
+        val rateLimiter = ConcurrentRateLimiter(getSource())
+        val response = rateLimiter.withLimitBlocking {
+            rhinoContext.ensureActive()
+            Jsoup.connect(urlStr)
+                .sslSocketFactory(SSLHelper.unsafeSSLSocketFactory)
+                .ignoreContentType(true)
+                .followRedirects(false)
+                .requestBody(body)
+                .headers(requestHeaders)
+                .method(Connection.Method.POST)
+                .execute()
+        }
         return response
     }
 
@@ -884,7 +898,8 @@ interface JsExtensions : JsEncodeUtils {
         s ?: return null
         val matcher = AppPattern.titleNumPattern.matcher(s)
         if (matcher.find()) {
-            return "${matcher.group(1)}${StringUtils.stringToInt(matcher.group(2))}${matcher.group(3)}"
+            val intStr = StringUtils.stringToInt(matcher.group(2))
+            return "${matcher.group(1)}${intStr}${matcher.group(3)}"
         }
         return s
     }
@@ -943,6 +958,21 @@ interface JsExtensions : JsEncodeUtils {
 
     fun androidId(): String {
         return AppConst.androidId
+    }
+
+    fun openUrl(url: String) {
+        openUrl(url, null)
+    }
+
+    // 新增 mimeType 参数，默认为 null（保持兼容性）
+    fun openUrl(url: String, mimeType: String? = null) {
+        val source = getSource() ?: throw NoStackTraceException("openUrl source cannot be null")
+        appCtx.startActivity<OpenUrlConfirmActivity> {
+            putExtra("uri", url)
+            putExtra("mimeType", mimeType)
+            putExtra("sourceOrigin", source.getKey())
+            putExtra("sourceName", source.getTag())
+        }
     }
 
 }

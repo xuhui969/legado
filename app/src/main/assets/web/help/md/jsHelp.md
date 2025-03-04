@@ -1,12 +1,12 @@
 # js变量和函数
-> 阅读使用[Rhino](https://github.com/mozilla/rhino)作为JavaScript引擎以便于[调用Java类和方法](https://m.jb51.net/article/92138.htm)，查看[ECMAScript兼容性表格](https://mozilla.github.io/rhino/compat/engines.html)
+> 阅读使用[Rhino v1.8.0](https://github.com/mozilla/rhino) 作为JavaScript引擎以便于[调用Java类和方法](https://m.jb51.net/article/92138.htm)，查看[ECMAScript兼容性表格](https://mozilla.github.io/rhino/compat/engines.html)
 
-> [Rhino运行时](https://github.com/mozilla/rhino/blob/master/rhino/src/main/java/org/mozilla/javascript/ScriptRuntime.java#L299)懒加载导入的Java类和方法
+> [Rhino运行时](https://github.com/mozilla/rhino/blob/master/rhino/src/main/java/org/mozilla/javascript/ScriptRuntime.java)懒加载导入的Java类和方法
 
 |构造函数|函数|对象|调用类|简要说明|
 |------|-----|------|----|------|
-|JavaImporter|importClass importPackage| |[ImporterTopLevel](https://github.com/mozilla/rhino/blob/master/rhino/src/main/java/org/mozilla/javascript/ImporterTopLevel.java#L147-L190)|导入Java类到JavaScript|
-||getClass|Packages java javax ...|[NativeJavaTopPackage](https://github.com/mozilla/rhino/blob/master/rhino/src/main/java/org/mozilla/javascript/NativeJavaTopPackage.java#L66-L104)|默认导入JavaScript中的Java类|
+|JavaImporter|importClass importPackage| |[ImporterTopLevel](https://github.com/mozilla/rhino/blob/master/rhino/src/main/java/org/mozilla/javascript/ImporterTopLevel.java)|导入Java类到JavaScript|
+||getClass|Packages java javax ...|[NativeJavaTopPackage](https://github.com/mozilla/rhino/blob/master/rhino/src/main/java/org/mozilla/javascript/NativeJavaTopPackage.java)|默认导入JavaScript中的Java类|
 |JavaAdapter|||[JavaAdapter](https://github.com/mozilla/rhino/blob/master/rhino/src/main/java//org/mozilla/javascript/JavaAdapter.java)|继承Java类|
 
 > 注意`java`变量指向已经被阅读修改，如果想要调用`java.*`下的包，请使用`Packages.java.*`
@@ -428,7 +428,7 @@ cookie.removeCookie(url)
 > 保存至数据库和缓存文件(50M)，保存的内容较大时请使用`getFile putFile`
 ```js
 保存
-cache.put(key: String, value: Any , saveTime: Int)
+cache.put(key: String, value: String, saveTime: Int)
 读取数据库
 cache.get(key: String): String?
 删除
@@ -443,3 +443,10 @@ cache.getFromMemory(key: String): Any?
 cache.putMemory(key: String, value: Any)
 
 ```
+
+## 跳转外部链接/应用函数
+```js
+// 跳转外部链接，传入http链接或者scheme跳转到浏览器或其他应用
+java.openUrl(url:String)
+// 指定mimeType，可以跳转指定类型应用，例如（video/*）
+java.openUrl(url:String,mimeType:String)

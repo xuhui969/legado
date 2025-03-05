@@ -14,6 +14,8 @@ import io.legado.app.help.book.BookHelp
 import io.legado.app.help.book.ContentProcessor
 import io.legado.app.help.book.isImage
 import io.legado.app.help.book.isLocal
+import io.legado.app.help.book.isPdf
+import io.legado.app.help.book.isSameNameAuthor
 import io.legado.app.help.book.readSimulating
 import io.legado.app.help.book.simulatedTotalChapterNum
 import io.legado.app.help.book.update
@@ -24,6 +26,7 @@ import io.legado.app.help.globalExecutor
 import io.legado.app.model.localBook.TextFile
 import io.legado.app.model.webBook.WebBook
 import io.legado.app.service.BaseReadAloudService
+import io.legado.app.service.CacheBookService
 import io.legado.app.ui.book.read.page.entities.TextChapter
 import io.legado.app.ui.book.read.page.provider.ChapterProvider
 import io.legado.app.ui.book.read.page.provider.LayoutProgressListener
@@ -41,6 +44,7 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.withContext
 import splitties.init.appCtx
 import kotlin.math.max
@@ -91,6 +95,7 @@ object ReadBook : CoroutineScope by MainScope() {
     val downloadFailChapters = hashMapOf<Int, Int>()
     var contentProcessor: ContentProcessor? = null
     val downloadScope = CoroutineScope(SupervisorJob() + IO)
+    val preDownloadSemaphore = Semaphore(2)
     val executor = globalExecutor
 
     //暂时保存跳转前进度
@@ -166,11 +171,21 @@ object ReadBook : CoroutineScope by MainScope() {
     fun upWebBook(book: Book) {
         if (book.isLocal) {
             bookSource = null
+            if (book.getImageStyle().isNullOrBlank() && (book.isImage || book.isPdf)) {
+                book.setImageStyle(Book.imgStyleFull)
+            }
         } else {
             appDb.bookSourceDao.getBookSource(book.origin)?.let {
                 bookSource = it
                 if (book.getImageStyle().isNullOrBlank()) {
-                    book.setImageStyle(it.getContentRule().imageStyle)
+                    var imageStyle = it.getContentRule().imageStyle
+                    if (imageStyle.isNullOrBlank() && (book.isImage || book.isPdf)) {
+                        imageStyle = Book.imgStyleFull
+                    }
+                    book.setImageStyle(imageStyle)
+                    if (imageStyle.equals(Book.imgStyleSingle, true)) {
+                        book.setPageAnim(0)
+                    }
                 }
             } ?: let {
                 bookSource = null
@@ -183,6 +198,9 @@ object ReadBook : CoroutineScope by MainScope() {
         ReadBookConfig.isComic = book.isImage
         if (oldIndex != ReadBookConfig.styleSelect) {
             postEvent(EventBus.UP_CONFIG, arrayListOf(1, 2, 5))
+            if (AppConfig.readBarStyleFollowPage) {
+                postEvent(EventBus.UPDATE_READ_ACTION_BAR, true)
+            }
         }
     }
 
@@ -481,6 +499,8 @@ object ReadBook : CoroutineScope by MainScope() {
 
     val isScroll inline get() = pageAnim() == scrollPageAnim
 
+    val contentLoadFinish get() = curTextChapter != null || msg != null
+
     /**
      * chapterOnDur: 0为当前页,1为下一页,-1为上一页
      */
@@ -547,7 +567,7 @@ object ReadBook : CoroutineScope by MainScope() {
                             it,
                             upContent,
                             resetPageOffset,
-                            success
+                            success = success
                         )
                     } ?: download(
                         downloadScope,
@@ -601,10 +621,10 @@ object ReadBook : CoroutineScope by MainScope() {
                         downloadedChapters.add(chapter.index)
                     } else {
                         delay(1000)
-                        download(downloadScope, chapter, false)
+                        download(downloadScope, chapter, false, preDownloadSemaphore)
                     }
                 } ?: removeLoading(index)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 removeLoading(index)
             }
         }
@@ -617,12 +637,13 @@ object ReadBook : CoroutineScope by MainScope() {
         scope: CoroutineScope,
         chapter: BookChapter,
         resetPageOffset: Boolean,
+        semaphore: Semaphore? = null,
         success: (() -> Unit)? = null
     ) {
         val book = book ?: return removeLoading(chapter.index)
         val bookSource = bookSource
         if (bookSource != null) {
-            CacheBook.getOrCreate(bookSource, book).download(scope, chapter)
+            CacheBook.getOrCreate(bookSource, book).download(scope, chapter, semaphore)
         } else {
             val msg = if (book.isLocal) "无内容" else "没有书源"
             contentLoadFinish(
@@ -669,10 +690,11 @@ object ReadBook : CoroutineScope by MainScope() {
         content: String,
         upContent: Boolean = true,
         resetPageOffset: Boolean,
+        canceled: Boolean = false,
         success: (() -> Unit)? = null
     ) {
         removeLoading(chapter.index)
-        if (chapter.index !in durChapterIndex - 1..durChapterIndex + 1) {
+        if (canceled || chapter.index !in durChapterIndex - 1..durChapterIndex + 1) {
             return
         }
         Coroutine.async {
@@ -894,6 +916,25 @@ object ReadBook : CoroutineScope by MainScope() {
         }
     }
 
+    fun cancelPreDownloadTask() {
+        if (contentLoadFinish) {
+            preDownloadTask?.cancel()
+            downloadScope.coroutineContext.cancelChildren()
+        }
+    }
+
+    fun onChapterListUpdated(newBook: Book) {
+        if (newBook.isSameNameAuthor(book)) {
+            book = newBook
+            chapterSize = newBook.totalChapterNum
+            simulatedChapterSize = newBook.simulatedTotalChapterNum()
+            if (simulatedChapterSize > 0 && durChapterIndex > simulatedChapterSize - 1) {
+                durChapterIndex = simulatedChapterSize - 1
+            }
+            clearTextChapter()
+        }
+    }
+
     /**
      * 注册回调
      */
@@ -916,6 +957,9 @@ object ReadBook : CoroutineScope by MainScope() {
         downloadedChapters.clear()
         downloadFailChapters.clear()
         ImageProvider.clear()
+        if (!CacheBookService.isRun) {
+            CacheBook.close()
+        }
     }
 
     interface CallBack : LayoutProgressListener {

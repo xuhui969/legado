@@ -8,6 +8,7 @@ import cn.hutool.core.util.HexUtil
 import com.bumptech.glide.load.model.GlideUrl
 import com.script.buildScriptBindings
 import com.script.rhino.RhinoScriptEngine
+import com.script.rhino.runScriptWithContext
 import io.legado.app.constant.AppConst.UA_NAME
 import io.legado.app.constant.AppPattern
 import io.legado.app.constant.AppPattern.JS_PATTERN
@@ -35,6 +36,7 @@ import io.legado.app.help.http.newCallStrResponse
 import io.legado.app.help.http.postForm
 import io.legado.app.help.http.postJson
 import io.legado.app.help.http.postMultipart
+import io.legado.app.help.source.getShareScope
 import io.legado.app.utils.EncoderUtils
 import io.legado.app.utils.GSON
 import io.legado.app.utils.NetworkUtils
@@ -45,7 +47,6 @@ import io.legado.app.utils.isJson
 import io.legado.app.utils.isJsonArray
 import io.legado.app.utils.isJsonObject
 import io.legado.app.utils.isXml
-import com.script.rhino.runScriptWithContext
 import io.legado.app.utils.splitNotBlank
 import kotlinx.coroutines.runBlocking
 import okhttp3.MediaType.Companion.toMediaType
@@ -80,6 +81,7 @@ class AnalyzeUrl(
     private val ruleData: RuleDataInterface? = null,
     private val chapter: BookChapter? = null,
     private val readTimeout: Long? = null,
+    private val callTimeout: Long? = null,
     private var coroutineContext: CoroutineContext = EmptyCoroutineContext,
     headerMapF: Map<String, String>? = null,
     hasLoginHeader: Boolean = true
@@ -307,7 +309,7 @@ class AnalyzeUrl(
             bindings["result"] = result
         }
         val scope = RhinoScriptEngine.getRuntimeScope(bindings)
-        source?.getShareScope()?.let {
+        source?.getShareScope(coroutineContext)?.let {
             scope.prototype = it
         }
         return RhinoScriptEngine.eval(jsStr, scope, coroutineContext)
@@ -455,13 +457,19 @@ class AnalyzeUrl(
 
     private fun getClient(): OkHttpClient {
         val client = getProxyClient(proxy)
-        if (readTimeout == null) {
+        if (readTimeout == null && callTimeout == null) {
             return client
         }
-        return client.newBuilder()
-            .readTimeout(readTimeout, TimeUnit.MILLISECONDS)
-            .callTimeout(max(60 * 1000L, readTimeout * 2), TimeUnit.MILLISECONDS)
-            .build()
+        return client.newBuilder().run {
+            if (readTimeout != null) {
+                readTimeout(readTimeout, TimeUnit.MILLISECONDS)
+                callTimeout(max(60 * 1000L, readTimeout * 2), TimeUnit.MILLISECONDS)
+            }
+            if (callTimeout != null) {
+                callTimeout(callTimeout, TimeUnit.MILLISECONDS)
+            }
+            build()
+        }
     }
 
     fun getResponse(): Response {
